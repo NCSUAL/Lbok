@@ -34,7 +34,7 @@ public class AstreeEditor {
         this.treeMaker = TreeMaker.instance(context);
     }
 
-    public void setStategy(Consumer<JCClassDecl> jConsumer){
+    public void setStrategy(Consumer<JCClassDecl> jConsumer){
         this.scanner = new TreePathScanner<>(){
             @Override
             public Trees visitClass(ClassTree classTree, CompilationUnitTree compilationUnitTree){
@@ -45,8 +45,7 @@ public class AstreeEditor {
                         public void visitClassDef(JCClassDecl tree){
                             super.visitClassDef(tree);;
                             jConsumer.accept(tree);
-                        }
-                    });
+                    }});
                 }
                 return trees;
             }

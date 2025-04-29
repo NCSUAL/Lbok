@@ -1,6 +1,9 @@
 package getter;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.ProcessingEnvironment;
@@ -9,8 +12,10 @@ import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
 import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.AnnotationValue;
 import javax.lang.model.element.Element;
-import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic.Kind;
 
@@ -30,6 +35,8 @@ import common.AstreeEditor;
 import constant.GetterMsg;
 import constant.Warning;
 import constant.nested.Status;
+import exception.NotValidElementKind;
+import options.Options;
 
 
 @SupportedSourceVersion(SourceVersion.RELEASE_17)
@@ -47,7 +54,7 @@ public class GetterProcessor extends AbstractProcessor{
         if(!processingEnv.getSourceVersion().equals(super.getSupportedSourceVersion())){
             processingEnv.getMessager().printMessage(Kind.WARNING,Warning.WARNING_NOTMATCH_JDKVERSION.getMessage());
         }
-
+        
         super.init(processingEnv);
    }
 
@@ -55,14 +62,44 @@ public class GetterProcessor extends AbstractProcessor{
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
         AstreeEditor astreeEditor = new AstreeEditor((JavacProcessingEnvironment)processingEnv);
 
-        astreeEditor.setStategy(createStrategy(astreeEditor));
-
+        astreeEditor.setStrategy(createStrategy(astreeEditor));
+        
         for(Element element: roundEnv.getElementsAnnotatedWith(Getter.class)){
-            if(element.getKind().equals(ElementKind.CLASS)){
-                astreeEditor.setTree(element);
+            switch(element.getKind()){
+                case CLASS, FIELD:
+                    astreeEditor.setTree(element);
+                    break;
+
+                default:
+                    throw new NotValidElementKind(element.getKind().toString(),"는 타겟 대상이 아닙니다.");
             }
         }
         return true;
+    }
+
+    private synchronized boolean hasOptions(Element element){
+        for(AnnotationMirror annotationMirror: element.getAnnotationMirrors()){
+            if(annotationMirror.getAnnotationType().toString().equals(Options.class.getCanonicalName())){
+                for(Map.Entry<? extends ExecutableElement, ? extends AnnotationValue> entry : annotationMirror.getElementValues().entrySet()){
+                    if(entry.getKey().getSimpleName().contentEquals("value")){
+
+                        //entryValue 값은 javac의 List임
+                        Object entryValue = entry.getValue().getValue();
+
+                        if(entryValue instanceof List<?> list){
+                            for(Object object: list){
+                                if(object instanceof AnnotationValue){
+                                    processingEnv.getMessager().printMessage(Kind.NOTE, GetterMsg.createMsg(Status.INFO,element.getSimpleName().toString().concat("은"),"생성 대상에서 제외시킵니다."));
+                                    return ((AnnotationValue)object).getValue().toString().equals("getter.Getter");
+                                }
+                            }
+                        }
+                    }
+                }
+                return false;
+            }
+        }
+        return false;
     }
 
     private Consumer<JCClassDecl> createStrategy(AstreeEditor astreeEditor){
@@ -73,7 +110,12 @@ public class GetterProcessor extends AbstractProcessor{
             @Override
             public void accept(JCTree.JCClassDecl jcClassDecl){
                 for(JCTree jctree: jcClassDecl.getMembers()){
-                    if(jctree instanceof JCTree.JCVariableDecl){
+                    if(jctree instanceof JCTree.JCVariableDecl field){
+                        
+                        if(hasOptions(field.sym)){
+                            continue;
+                        }
+
                         JCMethodDecl jcMethodDecl = createGetter(treeMaker, names, (JCVariableDecl)jctree);
                         jcClassDecl.defs = jcClassDecl.defs.append(jcMethodDecl);
                     }
@@ -88,7 +130,7 @@ public class GetterProcessor extends AbstractProcessor{
         String methodName = sb.append("get").append(memberName.substring(0,1).toUpperCase())
         .append(memberName.substring(1)).toString();
         
-        processingEnv.getMessager().printMessage(Kind.NOTE, GetterMsg.createMsg(Status.INFO,memberName+"의","getter 메서드를 생성합니다."));
+           processingEnv.getMessager().printMessage(Kind.NOTE, GetterMsg.createMsg(Status.INFO,memberName+"의","getter 메서드를 생성합니다."));
 
         return treeMaker.MethodDef(
             treeMaker.Modifiers(Flags.PUBLIC), 

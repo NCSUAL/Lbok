@@ -28,23 +28,26 @@ dependencies {
     
 }
 
-application {
-    // Define the main class for the application.
-    mainClass = 'library.App'
-}
-
 tasks.named('test') {
     // Use JUnit Platform for unit tests.
     useJUnitPlatform()
 }
 
+/* --- 핵심: 컴파일·어노테이션-프로세싱 JVM 옵션 강제 --- */
+def exports = [
+    '--add-exports=jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED',
+    '--add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED',
+    '--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED',
+    '--add-exports=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED'
+]
+
 tasks.withType(JavaCompile).configureEach {
-    options.compilerArgs += [
-        '--add-exports', 'jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED',
-        '--add-exports', 'jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED',
-        '--add-exports', 'jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED',
-        '--add-exports', 'jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED'
-    ]
+    // ★ Gradle이 별도 JVM을 fork하도록
+    options.fork = true
+    // ★ fork된 JVM에 exports 전달
+    options.forkOptions.jvmArgs += exports
+    // IDE 빨간줄 방지를 위해 컴파일 옵션에도 같은 리스트 추가
+    options.compilerArgs += exports
 }
 
 jar{
