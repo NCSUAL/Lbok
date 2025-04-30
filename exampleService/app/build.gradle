@@ -52,3 +52,9 @@ tasks.withType(JavaCompile).configureEach {
         "--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED"
     ]
 }
+
+test {
+    testLogging {
+        showStandardStreams = true            // 표준 출력 보여주기
+    }
+}

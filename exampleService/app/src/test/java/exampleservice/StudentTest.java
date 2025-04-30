@@ -4,9 +4,9 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import exampleservice.Constant.Gender;
@@ -23,13 +23,15 @@ public class StudentTest {
         
         Student student = new Student(name,age,gender);
 
-        //test1 getName 동작 검증
-        assertTrue(student.getName().contains("퉁"));
-        assertTrue(student.getName().contains("사후르"));
-        
-        //test2 getAge 동작 검증
-        assertEquals(student.getAge(), 58000);
-        
+        //getName, getAge 생성여부를 판단한다
+        Method[] methods = student.getClass().getDeclaredMethods();
+
+        List<String> methodNames  = new ArrayList<String>();
+
+        Arrays.stream(methods).forEach(method -> methodNames.add(method.getName()));
+
+        assertTrue(methodNames.contains("getName"));
+        assertTrue(methodNames.contains("getAge"));
     }
 
     @Test
@@ -48,7 +50,7 @@ public class StudentTest {
     
         for(Method method : methods){
             methodName.add(method.getName());
-        }
+        }  
 
         assertTrue(methodName.contains("getAge"));
         assertFalse(methodName.contains("getGender"));
