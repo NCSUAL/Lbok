@@ -3,8 +3,10 @@ package exampleservice.domain;
 import exampleservice.Constant.Gender;
 import getter.Getter;
 import options.Options;
+import setter.Setter;
 
 @Getter
+@Setter
 public class Student {
     private String name;
     private Integer age;

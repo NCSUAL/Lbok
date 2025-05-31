@@ -2,10 +2,11 @@ package exampleservice;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 import org.junit.jupiter.api.Test;
 
@@ -13,26 +14,6 @@ import exampleservice.Constant.Gender;
 import exampleservice.domain.Student;
 
 public class StudentTest {
-
-    @Test
-    public void Student의_Getter가_제대로_작동하는지_검증한다(){
-
-        String name = "퉁 퉁 퉁 퉁 퉁 퉁 퉁 퉁 퉁 사후르";
-        int age = 58000;
-        Gender gender = Gender.TUNG;
-        
-        Student student = new Student(name,age,gender);
-
-        //getName, getAge 생성여부를 판단한다
-        Method[] methods = student.getClass().getDeclaredMethods();
-
-        List<String> methodNames  = new ArrayList<String>();
-
-        Arrays.stream(methods).forEach(method -> methodNames.add(method.getName()));
-
-        assertTrue(methodNames.contains("getName"));
-        assertTrue(methodNames.contains("getAge"));
-    }
 
     @Test
     public void Student의_Getter의_메소드_생성을_검증한다(){
@@ -54,5 +35,37 @@ public class StudentTest {
 
         assertTrue(methodName.contains("getAge"));
         assertFalse(methodName.contains("getGender"));
+    }
+
+    @Test
+    public void Student의_Setter의_메소드_생성을_검증한다() throws SecurityException, NoSuchMethodException{
+        String name = "하... 인생이 길다 길어";
+        int age = 22;
+        Gender gender = Gender.FEMALE;
+        Student student = new Student(name, age, gender);
+
+        Method method = student.getClass().getMethod("setName", String.class);
+        assertTrue(Objects.nonNull(method));
+    }
+
+    @Test
+    public void Student의_Setter_Getter_동작을_검증한다() throws SecurityException, NoSuchMethodException, IllegalAccessException, IllegalArgumentException , InvocationTargetException {
+        String name = "오늘도 시간이 안갑니다";
+        int age = 22;
+        Gender gender = Gender.FEMALE;
+        Student student = new Student(name, age, gender);
+
+        //setter Method 생성
+        Method setterMethod = student.getClass().getMethod("setName", String.class);
+
+        String changeName = "하하 녀석";
+        setterMethod.invoke(student,changeName);
+
+        //getter Method 검증
+        Method getterMethod = student.getClass().getMethod("getName");
+        Object getName = getterMethod.invoke(student, (Object[])null);
+
+        assertEquals(getName, changeName);
+        
     }
 }

@@ -37,6 +37,7 @@ import constant.Warning;
 import constant.nested.Status;
 import exception.NotValidElementKind;
 import options.Options;
+import options.OptionsUtils;
 
 
 @SupportedSourceVersion(SourceVersion.RELEASE_17)
@@ -77,31 +78,6 @@ public class GetterProcessor extends AbstractProcessor{
         return true;
     }
 
-    private synchronized boolean hasOptions(Element element){
-        for(AnnotationMirror annotationMirror: element.getAnnotationMirrors()){
-            if(annotationMirror.getAnnotationType().toString().equals(Options.class.getCanonicalName())){
-                for(Map.Entry<? extends ExecutableElement, ? extends AnnotationValue> entry : annotationMirror.getElementValues().entrySet()){
-                    if(entry.getKey().getSimpleName().contentEquals("value")){
-
-                        //entryValue 값은 javac의 List임
-                        Object entryValue = entry.getValue().getValue();
-
-                        if(entryValue instanceof List<?> list){
-                            for(Object object: list){
-                                if(object instanceof AnnotationValue){
-                                    processingEnv.getMessager().printMessage(Kind.NOTE, GetterMsg.createMsg(Status.INFO,element.getSimpleName().toString().concat("은"),"생성 대상에서 제외시킵니다."));
-                                    return ((AnnotationValue)object).getValue().toString().equals("getter.Getter");
-                                }
-                            }
-                        }
-                    }
-                }
-                return false;
-            }
-        }
-        return false;
-    }
-
     private Consumer<JCClassDecl> createStrategy(AstreeEditor astreeEditor){
         TreeMaker treeMaker = astreeEditor.getTreeMaker();
         Names names = astreeEditor.getNames();
@@ -112,7 +88,7 @@ public class GetterProcessor extends AbstractProcessor{
                 for(JCTree jctree: jcClassDecl.getMembers()){
                     if(jctree instanceof JCTree.JCVariableDecl field){
                         
-                        if(hasOptions(field.sym)){
+                        if(OptionsUtils.hasOptions(processingEnv,field.sym,Getter.class)){
                             continue;
                         }
 
